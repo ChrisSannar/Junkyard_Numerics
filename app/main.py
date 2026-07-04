@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.pipeline import build_memo, load_corpus
+from app.search import concordance, expand_terms
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
@@ -69,6 +70,28 @@ def demo_memo():
     if not path.exists():
         raise HTTPException(404, "demo memo not built yet — run: uv run python -m app.pipeline")
     return json.loads(path.read_text())
+
+
+class TermsRequest(BaseModel):
+    phrase: str
+    section_context: str = ""
+
+
+@app.post("/api/research/terms")
+def research_terms(req: TermsRequest):
+    """LLM era-expansion of a selected phrase into extra search terms."""
+    exp = expand_terms(req.phrase, req.section_context)
+    return {"phrase": req.phrase, "terms": exp.terms, "rationale": exp.rationale}
+
+
+@app.get("/api/search")
+def search(terms: str):
+    """Keyword concordance over the corpus. `terms` = pipe-separated list."""
+    term_list = [t for t in terms.split("|") if t.strip()]
+    if not term_list:
+        raise HTTPException(400, "no search terms")
+    grouped = concordance(corpus(), term_list)
+    return {k: [h.model_dump() for h in v] for k, v in grouped.items()}
 
 
 class MemoRequest(BaseModel):

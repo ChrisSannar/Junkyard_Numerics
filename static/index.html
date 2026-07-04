@@ -3,178 +3,352 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Originalism Searcher — Tex. Const. 1876</title>
+<title>Originalism Searcher — Texas Constitution of 1876</title>
 <style>
   :root {
     --ink: #1a1712; --paper: #f7f3ea; --card: #fffdf8; --rule: #d8cfbc;
-    --accent: #7a2e1d; --accent-soft: #a45341; --muted: #6b6252;
-    --support: #2d5a34; --adverse: #8a2f2f; --neutral: #6b6252;
+    --accent: #7a2e1d; --muted: #6b6252;
+    --support: #2d5a34; --adverse: #8a2f2f;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
-    font-family: Georgia, 'Times New Roman', serif; line-height: 1.55;
+    font-family: Georgia, 'Times New Roman', serif; line-height: 1.6;
   }
   header {
-    border-bottom: 3px double var(--rule); padding: 22px 32px 14px;
-    background: var(--card);
+    border-bottom: 3px double var(--rule); padding: 16px 28px 10px;
+    background: var(--card); position: sticky; top: 0; z-index: 30;
+    display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap;
   }
-  header h1 { margin: 0; font-size: 26px; letter-spacing: .5px; }
-  header .sub { color: var(--muted); font-size: 14px; margin-top: 4px; font-style: italic; }
-  .layout { display: flex; min-height: calc(100vh - 90px); }
-  nav {
-    width: 250px; flex: none; border-right: 1px solid var(--rule);
-    padding: 16px; background: var(--card); overflow-y: auto; max-height: calc(100vh - 90px);
-    position: sticky; top: 0; font-size: 13.5px;
+  header h1 { margin: 0; font-size: 21px; }
+  header .sub { color: var(--muted); font-size: 12.5px; font-style: italic; }
+  #findbox {
+    margin-left: auto; font-family: inherit; font-size: 14px;
+    border: 1px solid var(--rule); background: var(--paper); padding: 5px 10px;
+    border-radius: 3px; width: 260px;
   }
-  nav h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 10px 0 6px;}
-  nav details { margin-bottom: 4px; }
-  nav summary { cursor: pointer; font-weight: bold; }
-  nav .sec { cursor: pointer; padding: 1px 6px; border-radius: 3px; }
-  nav .sec:hover { background: var(--paper); }
-  nav .sec.deep { color: var(--accent); font-weight: bold; }
-  main { flex: 1; padding: 26px 40px; max-width: 880px; }
-  .provision-box {
-    background: var(--card); border: 1px solid var(--rule); border-left: 4px solid var(--accent);
-    padding: 14px 18px; margin-bottom: 18px; font-size: 15px;
+  .hint { font-size: 12.5px; color: var(--muted); padding: 8px 28px; background: var(--card); border-bottom: 1px solid var(--rule); }
+  .layout { display: flex; }
+  /* ---------- reader ---------- */
+  #reader { flex: 1; min-width: 0; padding: 24px 40px 80px; max-width: 800px; margin: 0 auto; }
+  .article-h {
+    font-variant: small-caps; letter-spacing: 2px; text-align: center;
+    font-size: 20px; margin: 44px 0 4px; color: var(--accent);
   }
-  .provision-box .cite { font-weight: bold; font-variant: small-caps; letter-spacing: .5px; }
-  .question { font-style: italic; font-size: 17px; margin: 14px 0 20px; }
-  .summary { background: var(--card); border: 1px solid var(--rule); padding: 14px 18px; margin-bottom: 24px; }
-  h2.section {
-    font-size: 18px; border-bottom: 2px solid var(--rule); padding-bottom: 5px;
-    margin-top: 34px; font-variant: small-caps; letter-spacing: 1px;
+  .article-t { text-align: center; color: var(--muted); font-style: italic; margin-bottom: 18px; font-size: 14px; }
+  .section { margin: 14px 0; }
+  .section .num { font-weight: bold; font-variant: small-caps; margin-right: 6px; }
+  .section p { display: inline; }
+  .section.dim { opacity: .25; }
+  mark.find { background: #f3d9a4; }
+  ::selection { background: #e8c17b; }
+  /* ---------- research popover ---------- */
+  #popover {
+    position: absolute; z-index: 60; display: none;
+    background: var(--ink); color: var(--card); font-size: 13.5px;
+    padding: 7px 14px; border-radius: 4px; cursor: pointer; white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0,0,0,.3);
   }
-  .claim {
-    margin: 14px 0; padding: 12px 16px; background: var(--card);
-    border: 1px solid var(--rule); border-radius: 3px;
+  #popover:hover { background: var(--accent); }
+  /* ---------- research panel ---------- */
+  #panel {
+    width: 0; flex: none; transition: width .25s ease; overflow: hidden;
+    border-left: 2px solid var(--accent); background: var(--card);
+    height: calc(100vh - 58px); position: sticky; top: 58px;
   }
-  .claim .stance { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-  .stance.supporting { color: var(--support); } .stance.adverse { color: var(--adverse); }
-  .stance.neutral { color: var(--neutral); }
-  .cites { margin-top: 8px; }
-  .cite-chip {
-    display: inline-block; font-size: 12px; font-family: ui-monospace, monospace;
-    background: var(--paper); border: 1px solid var(--rule); border-radius: 3px;
-    padding: 2px 8px; margin: 2px 4px 2px 0; cursor: pointer; color: var(--accent);
+  #panel.open { width: 46%; min-width: 430px; }
+  #panel .inner { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  #panel .phead { padding: 12px 18px; border-bottom: 1px solid var(--rule); }
+  #panel .phead .close { float: right; cursor: pointer; font-size: 20px; color: var(--muted); background: none; border: none; }
+  #panel .phrase { font-size: 16px; font-style: italic; }
+  #panel .anchor { font-size: 12px; color: var(--muted); }
+  #panel .pbody { flex: 1; overflow-y: auto; padding: 12px 18px 40px; }
+  .chips { margin: 8px 0 4px; }
+  .chip {
+    display: inline-block; font-size: 12px; padding: 3px 10px; margin: 3px 4px 0 0;
+    border: 1px solid var(--rule); border-radius: 12px; cursor: pointer; user-select: none;
+    background: var(--paper);
   }
-  .cite-chip:hover { background: var(--accent); color: var(--card); }
-  .methodology { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--rule); margin-top: 36px; padding-top: 14px; }
-  /* source viewer */
+  .chip.on { background: var(--accent); color: var(--card); border-color: var(--accent); }
+  .chip.verbatim.on { background: var(--ink); border-color: var(--ink); }
+  .chips-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 10px; }
+  .memo-btn {
+    display: block; width: 100%; margin: 12px 0; padding: 9px; font-family: inherit; font-size: 14px;
+    background: var(--accent); color: var(--card); border: none; border-radius: 3px; cursor: pointer;
+  }
+  .memo-btn:hover { filter: brightness(1.15); }
+  .memo-btn[disabled] { opacity: .5; cursor: wait; }
+  .group-h {
+    font-size: 13px; font-variant: small-caps; letter-spacing: 1.5px; color: var(--accent);
+    border-bottom: 1px solid var(--rule); margin: 18px 0 6px; padding-bottom: 3px;
+  }
+  .hit { border: 1px solid var(--rule); background: var(--paper); border-radius: 3px; padding: 8px 12px; margin: 8px 0; font-size: 13.5px; cursor: pointer; }
+  .hit:hover { border-color: var(--accent); }
+  .hit .src { font-size: 11.5px; color: var(--muted); }
+  .hit .term-tag { font-family: ui-monospace, monospace; font-size: 10.5px; background: var(--card); border: 1px solid var(--rule); padding: 0 5px; border-radius: 3px; }
+  .hit mark { background: #f3d9a4; }
+  .loading { color: var(--muted); font-style: italic; font-size: 13.5px; }
+  .note { font-size: 12px; color: var(--muted); font-style: italic; }
+  /* ---------- source viewer (overlays panel) ---------- */
   #viewer {
-    position: fixed; top: 0; right: 0; width: 46%; height: 100vh; background: var(--card);
-    border-left: 2px solid var(--accent); box-shadow: -8px 0 30px rgba(0,0,0,.18);
-    transform: translateX(105%); transition: transform .25s ease; z-index: 50;
+    position: fixed; top: 0; right: 0; width: 46%; min-width: 430px; height: 100vh; background: var(--card);
+    border-left: 2px solid var(--ink); box-shadow: -8px 0 30px rgba(0,0,0,.25);
+    transform: translateX(105%); transition: transform .22s ease; z-index: 80;
     display: flex; flex-direction: column;
   }
   #viewer.open { transform: translateX(0); }
-  #viewer .vhead { padding: 14px 18px; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; align-items: baseline; }
-  #viewer .vhead b { font-size: 15px; }
-  #viewer .vclose { cursor: pointer; font-size: 22px; color: var(--muted); background: none; border: none; }
-  #viewer .vbody { flex: 1; overflow-y: auto; padding: 16px 18px; }
-  #viewer .ocr {
-    white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px;
-    background: var(--paper); border: 1px solid var(--rule); padding: 12px; max-height: 40vh; overflow-y: auto;
-  }
+  #viewer .vhead { padding: 12px 18px; border-bottom: 1px solid var(--rule); }
+  #viewer .vhead .close { float: right; cursor: pointer; font-size: 20px; color: var(--muted); background: none; border: none; }
+  #viewer .vbody { flex: 1; overflow-y: auto; padding: 14px 18px; }
+  #viewer .ocr { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px; background: var(--paper); border: 1px solid var(--rule); padding: 12px; max-height: 38vh; overflow-y: auto; }
   #viewer img { max-width: 100%; border: 1px solid var(--rule); margin-top: 12px; }
-  #viewer .ocr-note { font-size: 12px; color: var(--muted); font-style: italic; margin: 8px 0; }
   #viewer a { color: var(--accent); }
-  mark { background: #f3d9a4; }
-  .loading { color: var(--muted); font-style: italic; }
+  /* ---------- memo view inside panel ---------- */
+  .memo-sec-h { font-size: 15px; font-variant: small-caps; letter-spacing: 1px; border-bottom: 1px solid var(--rule); margin: 16px 0 6px; }
+  .claim { border: 1px solid var(--rule); background: var(--paper); padding: 9px 12px; margin: 8px 0; font-size: 13.5px; border-radius: 3px; }
+  .stance { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+  .stance.supporting { color: var(--support); } .stance.adverse { color: var(--adverse); } .stance.neutral { color: var(--muted); }
+  .cite-chip { display: inline-block; font-size: 11px; font-family: ui-monospace, monospace; background: var(--card); border: 1px solid var(--rule); border-radius: 3px; padding: 1px 7px; margin: 3px 4px 0 0; cursor: pointer; color: var(--accent); }
+  .cite-chip:hover { background: var(--accent); color: var(--card); }
+  .back-link { font-size: 12.5px; color: var(--accent); cursor: pointer; text-decoration: underline; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Originalism Searcher</h1>
-  <div class="sub">Original public meaning of the Texas Constitution of 1876 — evidence-first, pinpoint-cited</div>
+  <h1>Texas Constitution of 1876</h1>
+  <div class="sub">select any phrase → research its original public meaning</div>
+  <input id="findbox" type="search" placeholder="Find in text… (e.g. damaged)">
 </header>
+<div class="hint">Highlight any words in the text below, then click <b>Research phrase</b>. Evidence from 1870s newspapers, the 1875 convention debates, and era dictionaries appears on the right.</div>
+
 <div class="layout">
-  <nav id="nav"><h3>Constitution of 1876</h3><div class="loading">loading…</div></nav>
-  <main id="main"><div class="loading">Loading demo memo…</div></main>
+  <div id="reader"><p class="loading">Loading the constitution…</p></div>
+  <div id="panel"><div class="inner">
+    <div class="phead">
+      <button class="close" onclick="closePanel()">×</button>
+      <div class="phrase" id="p-phrase"></div>
+      <div class="anchor" id="p-anchor"></div>
+    </div>
+    <div class="pbody" id="p-body"></div>
+  </div></div>
 </div>
 
+<div id="popover">🔍 Research phrase</div>
+
 <div id="viewer">
-  <div class="vhead"><b id="v-title">Source</b><button class="vclose" onclick="closeViewer()">×</button></div>
+  <div class="vhead"><button class="close" onclick="closeViewer()">×</button><b id="v-title">Source</b></div>
   <div class="vbody" id="v-body"></div>
 </div>
 
 <script>
-const $ = (s) => document.querySelector(s);
-let memoData = null;
+const $ = s => document.querySelector(s);
+let constitution = null;
+let current = { phrase: null, anchor: null, sectionText: null, terms: [] };
 
-async function loadNav() {
-  const doc = await (await fetch('/api/constitution')).json();
-  const nav = $('#nav');
-  nav.innerHTML = '<h3>Constitution of 1876</h3>';
-  for (const a of doc.articles) {
-    const det = document.createElement('details');
-    if (a.key === 'I') det.open = true;
-    det.innerHTML = `<summary>Art. ${a.key} — ${a.title}</summary>`;
+/* ---------------- reader ---------------- */
+async function loadReader() {
+  constitution = await (await fetch('/api/constitution')).json();
+  const r = $('#reader'); r.innerHTML = '';
+  for (const a of constitution.articles) {
+    const h = document.createElement('div'); h.className = 'article-h';
+    h.textContent = `Article ${a.key}`; r.appendChild(h);
+    const t = document.createElement('div'); t.className = 'article-t';
+    t.textContent = a.title; r.appendChild(t);
     for (const s of a.sections) {
-      const d = document.createElement('div');
-      d.className = 'sec' + (a.key === 'I' && s.num === '17' ? ' deep' : '');
-      d.textContent = `§ ${s.num}` + (a.key === 'I' && s.num === '17' ? '  ★ deep analysis' : '');
-      d.onclick = () => showProvision(a, s);
-      det.appendChild(d);
+      const d = document.createElement('div'); d.className = 'section';
+      d.dataset.art = a.key; d.dataset.sec = s.num;
+      d.innerHTML = `<span class="num">Sec. ${s.num}.</span><p>${esc(s.text)}</p>`;
+      r.appendChild(d);
     }
-    nav.appendChild(det);
   }
 }
-
-function showProvision(a, s) {
-  if (a.key === 'I' && s.num === '17' && memoData) { renderMemo(memoData); return; }
-  $('#main').innerHTML = `
-    <div class="provision-box">
-      <div class="cite">Tex. Const. art. ${a.key}, § ${s.num} (1876) — ${a.title}</div>
-      <p>${esc(s.text)}</p>
-      <p style="font-size:13px"><a href="${a.url}" target="_blank">source: Tarlton Law Library</a></p>
-    </div>
-    <p class="loading">Thin path: browse only. Deep evidence analysis is built for Art. I, § 17 — select it in the sidebar.</p>`;
-}
-
 function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 
-async function loadMemo() {
-  try {
-    memoData = await (await fetch('/api/memo/demo')).json();
-    renderMemo(memoData);
-  } catch (e) {
-    $('#main').innerHTML = '<p class="loading">Demo memo not built yet — run <code>uv run python -m app.pipeline</code>.</p>';
+/* ---------------- find-in-text ---------------- */
+let findTimer = null;
+$('#findbox').addEventListener('input', e => {
+  clearTimeout(findTimer);
+  findTimer = setTimeout(() => applyFind(e.target.value.trim().toLowerCase()), 200);
+});
+function applyFind(q) {
+  document.querySelectorAll('#reader .section').forEach(sec => {
+    const p = sec.querySelector('p');
+    const raw = p.dataset.raw ?? (p.dataset.raw = p.textContent);
+    if (!q) { sec.classList.remove('dim'); p.innerHTML = esc(raw); return; }
+    const i = raw.toLowerCase().indexOf(q);
+    if (i < 0) { sec.classList.add('dim'); p.innerHTML = esc(raw); }
+    else {
+      sec.classList.remove('dim');
+      p.innerHTML = esc(raw.slice(0,i)) + '<mark class="find">' + esc(raw.slice(i,i+q.length)) + '</mark>' + esc(raw.slice(i+q.length));
+    }
+  });
+  const first = document.querySelector('#reader .section:not(.dim) mark.find');
+  if (first) first.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+/* ---------------- selection → popover ---------------- */
+const pop = $('#popover');
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) { pop.style.display = 'none'; return; }
+  const range = sel.getRangeAt(0);
+  const secEl = range.commonAncestorContainer.parentElement?.closest?.('.section');
+  if (!secEl || !$('#reader').contains(secEl)) { pop.style.display = 'none'; return; }
+  const text = sel.toString().replace(/\s+/g, ' ').trim();
+  if (text.length < 3 || text.length > 300) { pop.style.display = 'none'; return; }
+  const rect = range.getBoundingClientRect();
+  pop.style.display = 'block';
+  pop.style.left = (window.scrollX + rect.left + rect.width/2 - pop.offsetWidth/2) + 'px';
+  pop.style.top = (window.scrollY + rect.top - 40) + 'px';
+  pop.dataset.phrase = snapToWords(text);
+  pop.dataset.art = secEl.dataset.art; pop.dataset.sec = secEl.dataset.sec;
+  pop.dataset.sectionText = secEl.querySelector('p').dataset.raw ?? secEl.querySelector('p').textContent;
+});
+function snapToWords(t) { return t.replace(/^[^\w"']+|[^\w"'.]+$/g, ''); }
+
+pop.addEventListener('mousedown', e => {  // mousedown beats selectionchange clearing
+  e.preventDefault();
+  startResearch(pop.dataset.phrase, `Art. ${pop.dataset.art}, § ${pop.dataset.sec}`, pop.dataset.sectionText);
+  pop.style.display = 'none';
+  window.getSelection().removeAllRanges();
+});
+
+/* ---------------- research panel ---------------- */
+async function startResearch(phrase, anchor, sectionText) {
+  current = { phrase, anchor, sectionText, terms: [{ t: phrase, on: true, verbatim: true }] };
+  $('#panel').classList.add('open');
+  $('#p-phrase').textContent = `“${phrase}”`;
+  $('#p-anchor').textContent = anchor;
+  renderPanelScaffold();
+  runSearch();               // instant: verbatim only
+  fetchExpansion();          // async: era terms stream in
+}
+
+function renderPanelScaffold() {
+  const isS17 = current.anchor === 'Art. I, § 17';
+  $('#p-body').innerHTML = `
+    <button class="memo-btn" id="memo-btn">Build research memo for this phrase</button>
+    ${isS17 ? '<div class="note">A pre-built deep memo exists for § 17 — <span class="back-link" onclick="loadDemoMemo()">view it instantly</span>.</div>' : ''}
+    <div class="chips-label">Search terms <span class="note">(click to toggle)</span></div>
+    <div class="chips" id="chips"></div>
+    <div id="expansion-status" class="loading">expanding era vocabulary…</div>
+    <div id="results"></div>`;
+  $('#memo-btn').onclick = buildMemo;
+  renderChips();
+}
+
+function renderChips() {
+  const c = $('#chips'); c.innerHTML = '';
+  for (const [i, term] of current.terms.entries()) {
+    const el = document.createElement('span');
+    el.className = 'chip' + (term.on ? ' on' : '') + (term.verbatim ? ' verbatim' : '');
+    el.textContent = term.t;
+    el.title = term.verbatim ? 'verbatim selection' : 'era-expanded term';
+    el.onclick = () => { term.on = !term.on; renderChips(); runSearch(); };
+    c.appendChild(el);
   }
+}
+
+async function fetchExpansion() {
+  try {
+    const r = await fetch('/api/research/terms', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ phrase: current.phrase, section_context: current.sectionText || '' }),
+    });
+    const data = await r.json();
+    const phrase = current.phrase;
+    if (phrase !== data.phrase) return;   // user moved on
+    for (const t of data.terms) current.terms.push({ t, on: true, verbatim: false });
+    $('#expansion-status').innerHTML = `<span class="note" title="${esc(data.rationale)}">＋ era terms added (hover for why)</span>`;
+    renderChips(); runSearch();
+  } catch { $('#expansion-status').innerHTML = '<span class="note">era expansion unavailable</span>'; }
+}
+
+let searchSeq = 0;
+async function runSearch() {
+  const seq = ++searchSeq;
+  const active = current.terms.filter(t => t.on).map(t => t.t);
+  const res = $('#results');
+  if (!active.length) { res.innerHTML = '<p class="note">no active terms</p>'; return; }
+  res.innerHTML = '<p class="loading">searching corpus…</p>';
+  const r = await fetch('/api/search?terms=' + encodeURIComponent(active.join('|')));
+  if (seq !== searchSeq) return;
+  const grouped = await r.json();
+  const labels = { dictionary: 'Era Dictionaries (semantic meaning)', debate: '1875 Convention Debates', newspaper: '1870s Texas Newspapers', statute: 'Era Statutes', journal: 'Convention Journal' };
+  let html = '';
+  let total = 0;
+  for (const kind of ['dictionary', 'debate', 'newspaper', 'statute', 'journal']) {
+    const hits = grouped[kind]; if (!hits?.length) continue;
+    total += hits.length;
+    html += `<div class="group-h">${labels[kind]} — ${hits.length}</div>`;
+    for (const h of hits) {
+      html += `<div class="hit" onclick="openEvidence('${h.evidence_id.replace(/'/g,"\\'")}')">
+        <div class="src">${esc(h.source_name)}${h.date ? ' · ' + esc(h.date) : ''} · matched <span class="term-tag">${esc(h.term)}</span></div>
+        <div>${markTerm(h.snippet, h.term)}</div>
+      </div>`;
+    }
+  }
+  res.innerHTML = html || '<p class="note">No corpus hits for the active terms. Try toggling different terms on.</p>';
+}
+function markTerm(snippet, term) {
+  const e = esc(snippet);
+  const i = e.toLowerCase().indexOf(esc(term).toLowerCase());
+  if (i < 0) return e;
+  return e.slice(0,i) + '<mark>' + e.slice(i, i+term.length) + '</mark>' + e.slice(i+term.length);
+}
+
+function closePanel(){ $('#panel').classList.remove('open'); }
+
+/* ---------------- memo (upgrade path) ---------------- */
+async function buildMemo() {
+  const btn = $('#memo-btn');
+  btn.disabled = true; btn.textContent = 'Building memo (1–2 min: extracting evidence, synthesizing)…';
+  const active = current.terms.filter(t => t.on).map(t => t.t);
+  const question = `What was the original public meaning of "${current.phrase}" in ${current.anchor} of the Texas Constitution of 1876?`;
+  try {
+    const r = await fetch('/api/memo', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ question, terms: active }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    renderMemo(await r.json());
+  } catch (e) {
+    btn.disabled = false; btn.textContent = 'Build research memo for this phrase';
+    alert('Memo build failed: ' + e.message.slice(0, 200));
+  }
+}
+
+async function loadDemoMemo() {
+  renderMemo(await (await fetch('/api/memo/demo')).json());
 }
 
 function renderMemo(m) {
   const kindOrder = { semantic: 0, tradition: 1, sentiment: 2 };
   const secs = [...m.sections].sort((a,b)=>kindOrder[a.kind]-kindOrder[b.kind]);
-  let html = `
-    <div class="provision-box"><div class="cite">${esc(m.provision)}</div></div>
-    <div class="question">Q: ${esc(m.question)}</div>
-    <div class="summary"><b>Summary.</b> ${esc(m.summary)}</div>`;
+  let html = `<span class="back-link" onclick="renderPanelScaffold(); runSearch();">← back to evidence feed</span>
+    <p style="font-style:italic; font-size:14px; margin:10px 0">Q: ${esc(m.question)}</p>
+    <div class="claim"><b>Summary.</b> ${esc(m.summary)}</div>`;
   for (const sec of secs) {
-    html += `<h2 class="section">${esc(sec.heading)}</h2>`;
+    html += `<div class="memo-sec-h">${esc(sec.heading)}</div>`;
     for (const c of sec.claims) {
       const chips = c.evidence_ids.map(id =>
         `<span class="cite-chip" onclick="openEvidence('${id.replace(/'/g,"\\'")}')">${esc(shortId(id))}</span>`).join('');
-      html += `<div class="claim">
-        <span class="stance ${esc(c.stance)}">${esc(c.stance)}</span>
-        <div>${esc(c.text)}</div>
-        <div class="cites">${chips}</div>
-      </div>`;
+      html += `<div class="claim"><span class="stance ${esc(c.stance)}">${esc(c.stance)}</span>
+        <div>${esc(c.text)}</div><div>${chips}</div></div>`;
     }
-    if (!sec.claims.length) html += '<p class="loading">no claims in this section</p>';
   }
-  html += `<div class="methodology"><b>Methodology &amp; limitations.</b> ${esc(m.methodology)}</div>`;
-  $('#main').innerHTML = html;
+  html += `<div class="note" style="margin-top:16px"><b>Methodology.</b> ${esc(m.methodology)}</div>`;
+  $('#p-body').innerHTML = html;
 }
-
 function shortId(id) {
   const p = id.split(':');
   if (p[0]==='chronam') return `${p[2]} ${p[3]||''}`.trim();
   if (p[0]==='debates') return `Debates ${p[1].replace('_dbt','').replace(/_/g,'-')} ${p[2]}`;
   if (p[0]==='dict') return `${p[1]}: ${p[2]}`;
-  return id.slice(0, 28);
+  return id.slice(0, 26);
 }
 
+/* ---------------- source viewer ---------------- */
 async function openEvidence(id) {
   const v = $('#viewer'); v.classList.add('open');
   $('#v-title').textContent = 'Loading…';
@@ -184,18 +358,20 @@ async function openEvidence(id) {
   const rec = await r.json();
   $('#v-title').textContent = `${rec.source_name}${rec.date ? ' — ' + rec.date : ''}`;
   let body = '';
-  if (rec.ocr_quality_note) body += `<div class="ocr-note">⚠ ${esc(rec.ocr_quality_note)}</div>`;
+  if (rec.ocr_quality_note) body += `<div class="note">⚠ ${esc(rec.ocr_quality_note)}</div>`;
   body += `<div class="ocr">${esc(rec.text.slice(0, 12000))}</div>`;
   body += `<p><a href="${rec.locator.url}" target="_blank">→ view at the archive${rec.locator.page ? ' (page ' + esc(rec.locator.page) + ')' : ''}</a>`;
-  if (rec.locator.detail) body += ` <span class="ocr-note">(${esc(rec.locator.detail)})</span>`;
+  if (rec.locator.detail) body += ` <span class="note">(${esc(rec.locator.detail)})</span>`;
   body += '</p>';
   if (rec.locator.image_url) body += `<img src="${rec.locator.image_url}" alt="page scan" loading="lazy">`;
   $('#v-body').innerHTML = body;
 }
 function closeViewer(){ $('#viewer').classList.remove('open'); }
-document.addEventListener('keydown', e => { if (e.key==='Escape') closeViewer(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeViewer(); pop.style.display='none'; }
+});
 
-loadNav(); loadMemo();
+loadReader();
 </script>
 </body>
 </html>

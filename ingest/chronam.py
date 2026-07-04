@@ -38,7 +38,7 @@ def _get(client: httpx.Client, url: str, params: dict | None = None, tries: int 
             resp = client.get(url, params=params, headers=HEADERS, timeout=60)
             if resp.status_code == 200:
                 return resp.json()
-            if resp.status_code in (403, 429, 500, 502, 503):
+            if resp.status_code in (403, 429, 500, 502, 503, 520, 521, 522, 524):
                 wait = THROTTLE_S * (attempt + 2)
                 print(f"  {resp.status_code} — backing off {wait:.0f}s", file=sys.stderr)
                 time.sleep(wait)
@@ -170,8 +170,9 @@ def main() -> None:
                     continue
                 try:
                     text = fetch_full_text(client, item_url)
-                except RuntimeError as e:
+                except (RuntimeError, httpx.HTTPError) as e:
                     print(f"  skip {item_url}: {e}", file=sys.stderr)
+                    time.sleep(THROTTLE_S)
                     continue
                 if not text:
                     continue
