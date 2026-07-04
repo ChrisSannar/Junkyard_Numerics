@@ -13,11 +13,14 @@ import os
 from typing import TypeVar
 
 import httpx
+from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
+
+# .env at the repo root; real env vars win over the file
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 T = TypeVar("T", bound=BaseModel)
 
-OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Anthropic model id -> OpenRouter slug
@@ -33,7 +36,7 @@ _OR_MODELS = {
 def parse_structured(schema_model: type[T], *, model: str, system: str,
                      prompt: str, max_tokens: int) -> T:
     """One structured call: system + user prompt -> validated schema_model."""
-    if OPENROUTER_KEY:
+    if os.environ.get("OPENROUTER_API_KEY"):
         return _openrouter(schema_model, model=model, system=system,
                            prompt=prompt, max_tokens=max_tokens)
     return _anthropic(schema_model, model=model, system=system,
@@ -79,7 +82,7 @@ def _openrouter(schema_model: type[T], *, model: str, system: str,
             },
         },
     }
-    headers = {"Authorization": f"Bearer {OPENROUTER_KEY}",
+    headers = {"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}",
                "Content-Type": "application/json"}
     last_err: Exception | None = None
     for attempt in range(2):
