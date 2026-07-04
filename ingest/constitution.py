@@ -46,6 +46,8 @@ SEC_RE = re.compile(r"SEC(?:TION)?\.?\s+(\d+[a-z]?)\.\s*", re.I)
 
 
 def page_sections(html: str) -> list[dict]:
+    # drop script/style CONTENTS first — tag-stripping alone leaves inline JS/CSS behind
+    html = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", html, flags=re.I | re.S)
     txt = re.sub(r"<[^>]+>", " ", html)
     txt = htmllib.unescape(txt)
     txt = re.sub(r"\s+", " ", txt)
@@ -54,7 +56,9 @@ def page_sections(html: str) -> list[dict]:
     # parts = [pre, num1, body1, num2, body2, ...]
     for num, body in zip(parts[1::2], parts[2::2]):
         # trim trailing site chrome from the final section
-        body = re.split(r"(Property of Tarlton|Back to top|©)", body)[0]
+        body = re.split(
+            r"(Property of Tarlton|Back to top|©|\(Transcription, errors in original"
+            r"|Last Updated:|Print Page|Login to LibApps)", body)[0]
         body = body.strip()
         if len(body) > 20:
             sections.append({"num": num, "text": body[:8000]})
