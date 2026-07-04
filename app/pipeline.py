@@ -17,9 +17,9 @@ import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import anthropic
 from pydantic import BaseModel
 
+from app.llm import parse_structured
 from app.schema import (
     EvidenceKind,
     EvidenceRecord,
@@ -31,8 +31,6 @@ from app.schema import (
 
 MODEL = os.environ.get("ORIGINALISM_MODEL", "claude-opus-4-8")
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-
-client = anthropic.Anthropic()
 
 
 # ---------- corpus ----------
@@ -101,16 +99,10 @@ def extract_one(record: EvidenceRecord, question: str) -> Extraction | None:
         f"Document text:\n<document>\n{record.text[:24000]}\n</document>"
     )
     try:
-        response = client.messages.parse(
-            model=MODEL,
-            max_tokens=4000,
-            system=EXTRACT_SYSTEM,
-            messages=[{"role": "user", "content": prompt}],
-            output_format=Extraction,
-        )
-        return response.parsed_output
-    except anthropic.APIStatusError as e:
-        print(f"extract failed for {record.id}: {e.status_code}")
+        return parse_structured(Extraction, model=MODEL, system=EXTRACT_SYSTEM,
+                                prompt=prompt, max_tokens=4000)
+    except Exception as e:
+        print(f"extract failed for {record.id}: {e}")
         return None
 
 
@@ -174,15 +166,8 @@ def synthesize(question: str, provision_text: str,
         f"Interpretive question: {question}\n\n"
         f"Extracted evidence:\n{extracts_json}"
     )
-    with client.messages.stream(
-        model=MODEL,
-        max_tokens=32000,
-        system=SYNTH_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-        output_format=MemoDraft,
-    ) as stream:
-        response = stream.get_final_message()
-    return response.parsed_output
+    return parse_structured(MemoDraft, model=MODEL, system=SYNTH_SYSTEM,
+                            prompt=prompt, max_tokens=32000)
 
 
 # ---------- renderer validation (ADR-0003 §1) ----------

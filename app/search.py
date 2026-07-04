@@ -12,14 +12,12 @@ from __future__ import annotations
 import os
 import re
 
-import anthropic
 from pydantic import BaseModel
 
+from app.llm import parse_structured
 from app.schema import EvidenceRecord, SourceKind
 
 EXPAND_MODEL = os.environ.get("ORIGINALISM_EXPAND_MODEL", "claude-opus-4-8")
-
-client = anthropic.Anthropic()
 
 
 # ---------- term expansion ----------
@@ -48,14 +46,8 @@ not include terms so generic they match everything ("law", "property", "state").
 def expand_terms(phrase: str, section_context: str) -> TermExpansion:
     prompt = (f"Selected phrase: \"{phrase}\"\n\n"
               f"Section it appears in:\n{section_context[:2000]}")
-    response = client.messages.parse(
-        model=EXPAND_MODEL,
-        max_tokens=1000,
-        system=EXPAND_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-        output_format=TermExpansion,
-    )
-    return response.parsed_output
+    return parse_structured(TermExpansion, model=EXPAND_MODEL,
+                            system=EXPAND_SYSTEM, prompt=prompt, max_tokens=1000)
 
 
 # ---------- concordance search ----------
