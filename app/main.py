@@ -159,7 +159,8 @@ def research_terms(req: TermsRequest):
 def research_define(req: TermsRequest):
     """Plain-language definition of the selected phrase (short + extended)."""
     d = define_phrase(req.phrase, req.section_context)
-    return {"phrase": req.phrase, "short": d.short, "extended": d.extended}
+    return {"phrase": req.phrase, "short": d.short, "extended": d.extended,
+            "modern": d.modern}
 
 
 @app.get("/api/search")

@@ -388,7 +388,8 @@ function renderDef(showExtended) {
   $('#def-body').innerHTML = `<div class="def-box">
     <span class="def-short">${esc(d.short)}</span>
     ${showExtended
-      ? `<div class="def-ext"><span class="def-tag">In its time</span>${esc(d.extended)}</div>`
+      ? `<div class="def-ext"><span class="def-tag">In its time</span>${esc(d.extended)}</div>` +
+        (d.modern ? `<div class="def-ext"><span class="def-tag">In a modern context</span>${esc(d.modern)}</div>` : '')
       : ` <span class="def-more" onclick="renderDef(true)">show more</span>`}
     <div class="note" style="margin-top:6px">AI-generated explanation — background only, not sourced evidence.</div>
   </div>`;
