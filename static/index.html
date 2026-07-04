@@ -50,6 +50,8 @@
     box-shadow: 0 4px 14px rgba(0,0,0,.3);
   }
   #popover:hover { background: var(--accent); }
+  #popover.disabled { background: var(--muted); cursor: default; }
+  #popover.disabled:hover { background: var(--muted); }
   /* ---------- research panel ---------- */
   #panel {
     width: 0; flex: none; transition: width .25s ease; overflow: hidden;
@@ -246,11 +248,16 @@ document.addEventListener('selectionchange', () => {
   const secEl = range.commonAncestorContainer.parentElement?.closest?.('.section');
   if (!secEl || !$('#reader').contains(secEl)) { pop.style.display = 'none'; return; }
   const text = sel.toString().replace(/\s+/g, ' ').trim();
-  if (text.length < 3 || text.length > 300) { pop.style.display = 'none'; return; }
+  if (text.length < 3) { pop.style.display = 'none'; return; }
+  const tooLong = text.length > 300;
+  pop.classList.toggle('disabled', tooLong);
+  pop.textContent = tooLong ? '✂ Select a smaller phrase (max ~300 characters)' : '🔍 Research phrase';
   const rect = range.getBoundingClientRect();
   pop.style.display = 'block';
   pop.style.left = (window.scrollX + rect.left + rect.width/2 - pop.offsetWidth/2) + 'px';
   pop.style.top = (window.scrollY + rect.top - 40) + 'px';
+  pop.dataset.tooLong = tooLong ? '1' : '';
+  if (tooLong) return;
   pop.dataset.phrase = snapToWords(text);
   pop.dataset.art = secEl.dataset.art; pop.dataset.sec = secEl.dataset.sec;
   pop.dataset.sectionText = secEl.querySelector('p').dataset.raw ?? secEl.querySelector('p').textContent;
@@ -259,6 +266,7 @@ function snapToWords(t) { return t.replace(/^[^\w"']+|[^\w"'.]+$/g, ''); }
 
 pop.addEventListener('mousedown', e => {  // mousedown beats selectionchange clearing
   e.preventDefault();
+  if (pop.dataset.tooLong) return;        // informational only — keep the selection
   startResearch(pop.dataset.phrase, `Art. ${pop.dataset.art}, § ${pop.dataset.sec}`, pop.dataset.sectionText,
                 pop.dataset.art, pop.dataset.sec);
   pop.style.display = 'none';
