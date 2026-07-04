@@ -44,9 +44,31 @@ def load_corpus() -> dict[str, EvidenceRecord]:
     return corpus
 
 
+# Below this corpus size the O(n) scan is already sub-50ms and beats the
+# quantum index's one-time O(n·d) build; above it the O(log n) per-query index
+# wins and its build amortises across a session (ADR-0007, "crossover").
+QUANTUM_MIN_CORPUS = int(os.environ.get("ORIGINALISM_QUANTUM_MIN", "2000"))
+
+
 def relevant_records(corpus: dict[str, EvidenceRecord], terms: list[str],
                      limit: int = 40) -> list[EvidenceRecord]:
-    """Cheap relevance pass: keep records whose text matches any query term."""
+    """Relevance pass that gates the expensive Stage-1 LLM extraction.
+
+    For large corpora, uses the quantum-inspired O(log n) index (ADR-0007) to
+    rank candidates by complex-amplitude interference similarity; for small
+    corpora (and as a fallback if the quantum path is empty) it uses the linear
+    term-count scan, which is already fast at that scale.
+    """
+    if len(corpus) >= QUANTUM_MIN_CORPUS:
+        quantum = _quantum_candidates(corpus, terms, limit)
+        if quantum:
+            return quantum
+    return _linear_records(corpus, terms, limit)
+
+
+def _linear_records(corpus: dict[str, EvidenceRecord], terms: list[str],
+                    limit: int) -> list[EvidenceRecord]:
+    """Cheap O(n) relevance pass: keep records whose text matches any term."""
     lowered = [t.lower().strip('"') for t in terms]
     hits = []
     for r in corpus.values():
@@ -56,6 +78,23 @@ def relevant_records(corpus: dict[str, EvidenceRecord], terms: list[str],
             hits.append((score, r))
     hits.sort(key=lambda x: -x[0])
     return [r for _, r in hits[:limit]]
+
+
+# Cache the built index per corpus identity so /api/memo requests reuse it; the
+# O(n·d) build happens once, every subsequent query is O(log n).
+_quantum_index: tuple[int, "QuantumIndex"] | None = None
+
+
+def _quantum_candidates(corpus: dict[str, EvidenceRecord], terms: list[str],
+                        limit: int) -> list[EvidenceRecord]:
+    from app.quantum_search import QuantumIndex
+
+    global _quantum_index
+    if _quantum_index is None or _quantum_index[0] != id(corpus):
+        _quantum_index = (id(corpus), QuantumIndex.from_corpus(corpus))
+    index = _quantum_index[1]
+    query = " ".join(t.strip('"') for t in terms)
+    return [corpus[rid] for rid, _score in index.search(query, k=limit) if rid in corpus]
 
 
 # ---------- stage 1: per-document extraction ----------

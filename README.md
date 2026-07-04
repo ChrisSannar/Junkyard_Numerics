@@ -51,5 +51,19 @@ uv run uvicorn app.main:app --reload
 - `app/schema.py` — the evidence-record contract everything shares
 - `ingest/` — one fetcher per source → `data/corpus/*.jsonl`
 - `app/pipeline.py` — two-stage Claude pipeline (per-doc extract → synthesize)
+- `app/quantum_search.py` — quantum-inspired O(log n) retrieval index (ADR-0007)
 - `app/main.py` + `static/` — FastAPI + memo viewer with side-by-side source panel
 - `docs/adr/`, `docs/GLOSSARY.md`, `docs/SOURCES.md` — decisions, terms, verified access patterns
+
+## Quantum-inspired retrieval (ADR-0007)
+
+The candidate selector that gates the expensive per-document LLM extraction used
+to scan the whole corpus (O(n)). It is now a **quantum-inspired index**: complex
+amplitude/phase (Hilbert-space) embeddings with concept *interference*, retrieved
+by dequantized length-squared sampling over a segment-tree — **O(log n) per query**
+in the corpus size, no GPU, no quantum-computing library. Basis: *QuanTaxo*
+(AAAI-26) and *Pretrained Quantum-Inspired DNN for NLP* (IEEE TCYB 2024).
+
+```bash
+uv run python bench_quantum_search.py   # O(log n) vs linear scan + recall
+```
