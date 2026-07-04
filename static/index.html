@@ -101,6 +101,7 @@
   #viewer .vhead .close { float: right; cursor: pointer; font-size: 20px; color: var(--muted); background: none; border: none; }
   #viewer .vbody { flex: 1; overflow-y: auto; padding: 14px 18px; }
   #viewer .ocr { white-space: pre-wrap; font-family: ui-monospace, monospace; font-size: 12px; background: var(--paper); border: 1px solid var(--rule); padding: 12px; max-height: 38vh; overflow-y: auto; }
+  #viewer .ocr mark { background: #e8a94f; padding: 1px 2px; font-weight: bold; }
   #viewer img { max-width: 100%; border: 1px solid var(--rule); margin-top: 12px; }
   #viewer a { color: var(--accent); }
   /* ---------- memo view inside panel ---------- */
@@ -282,7 +283,7 @@ async function runSearch() {
     total += hits.length;
     html += `<div class="group-h">${labels[kind]} — ${hits.length}</div>`;
     for (const h of hits) {
-      html += `<div class="hit" onclick="openEvidence('${h.evidence_id.replace(/'/g,"\\'")}')">
+      html += `<div class="hit" onclick="openEvidence('${h.evidence_id.replace(/'/g,"\\'")}', '${esc(h.term).replace(/'/g,"\\'")}')">
         <div class="src">${esc(h.source_name)}${h.date ? ' · ' + esc(h.date) : ''} · matched <span class="term-tag">${esc(h.term)}</span></div>
         <div>${markTerm(h.snippet, h.term)}</div>
       </div>`;
@@ -349,7 +350,24 @@ function shortId(id) {
 }
 
 /* ---------------- source viewer ---------------- */
-async function openEvidence(id) {
+const EXCERPT = 2200;   // chars shown around the matched term
+
+function excerptAround(text, term) {
+  // window the OCR around the first match of `term` (whole newspaper pages
+  // are 20k+ chars — showing from the top buries the relevant passage)
+  let i = term ? text.toLowerCase().indexOf(term.toLowerCase()) : -1;
+  if (i < 0) return { html: esc(text.slice(0, EXCERPT)), clipped: text.length > EXCERPT, matched: false };
+  const start = Math.max(0, i - EXCERPT / 2);
+  const end = Math.min(text.length, i + term.length + EXCERPT / 2);
+  const pre = esc(text.slice(start, i)), hit = esc(text.slice(i, i + term.length)), post = esc(text.slice(i + term.length, end));
+  return {
+    html: (start > 0 ? '… ' : '') + pre + '<mark id="v-match">' + hit + '</mark>' + post + (end < text.length ? ' …' : ''),
+    clipped: start > 0 || end < text.length,
+    matched: true,
+  };
+}
+
+async function openEvidence(id, term) {
   const v = $('#viewer'); v.classList.add('open');
   $('#v-title').textContent = 'Loading…';
   $('#v-body').innerHTML = '<p class="loading">fetching source…</p>';
@@ -357,15 +375,35 @@ async function openEvidence(id) {
   if (!r.ok) { $('#v-body').innerHTML = '<p>⚠ could not resolve citation</p>'; return; }
   const rec = await r.json();
   $('#v-title').textContent = `${rec.source_name}${rec.date ? ' — ' + rec.date : ''}`;
+  const ex = excerptAround(rec.text, term);
   let body = '';
   if (rec.ocr_quality_note) body += `<div class="note">⚠ ${esc(rec.ocr_quality_note)}</div>`;
-  body += `<div class="ocr">${esc(rec.text.slice(0, 12000))}</div>`;
+  if (ex.matched) body += `<div class="note">showing excerpt around <b>${esc(term)}</b>${rec.source_kind === 'newspaper' ? ' (full page is one continuous OCR block)' : ''}</div>`;
+  body += `<div class="ocr" id="v-ocr">${ex.html}</div>`;
+  if (ex.clipped) body += `<div class="note"><span class="back-link" onclick="showFullText()">show full page text</span></div>`;
+  window._fullText = rec.text;
+  window._fullTerm = term;
   body += `<p><a href="${rec.locator.url}" target="_blank">→ view at the archive${rec.locator.page ? ' (page ' + esc(rec.locator.page) + ')' : ''}</a>`;
   if (rec.locator.detail) body += ` <span class="note">(${esc(rec.locator.detail)})</span>`;
   body += '</p>';
   if (rec.locator.image_url) body += `<img src="${rec.locator.image_url}" alt="page scan" loading="lazy">`;
   $('#v-body').innerHTML = body;
+  const m = $('#v-match');
+  if (m) m.scrollIntoView({ block: 'center' });
 }
+
+function showFullText() {
+  const ocr = $('#v-ocr');
+  if (!ocr || !window._fullText) return;
+  const t = window._fullText, term = window._fullTerm;
+  const i = term ? t.toLowerCase().indexOf(term.toLowerCase()) : -1;
+  ocr.style.maxHeight = '70vh';
+  ocr.innerHTML = i < 0 ? esc(t)
+    : esc(t.slice(0,i)) + '<mark id="v-match">' + esc(t.slice(i,i+term.length)) + '</mark>' + esc(t.slice(i+term.length));
+  const m = $('#v-match');
+  if (m) m.scrollIntoView({ block: 'center' });
+}
+
 function closeViewer(){ $('#viewer').classList.remove('open'); }
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeViewer(); pop.style.display='none'; }
