@@ -112,6 +112,17 @@
   #panel-toggle:hover { border-color: var(--accent); color: var(--accent); }
   .panel-empty { padding: 40px 24px; text-align: center; color: var(--muted); }
   .panel-empty .big { font-size: 34px; margin-bottom: 12px; }
+  /* ---------- research history pagination ---------- */
+  #p-pager { font-size: 13px; margin-bottom: 6px; user-select: none; }
+  #p-pager .page-n {
+    display: inline-block; min-width: 22px; text-align: center; margin: 0 2px; padding: 1px 4px;
+    border: 1px solid var(--rule); border-radius: 3px; cursor: pointer; background: var(--paper);
+  }
+  #p-pager .page-n:hover { border-color: var(--accent); color: var(--accent); }
+  #p-pager .page-n.cur { background: var(--accent); color: var(--card); border-color: var(--accent); cursor: default; }
+  #p-pager .page-arrow { cursor: pointer; margin: 0 6px; color: var(--accent); font-weight: bold; }
+  #p-pager .page-arrow.off { opacity: .25; pointer-events: none; }
+  mark.sel { background: #e8c17b; }
   /* ---------- definition dropdown ---------- */
   .def-toggle { font-size: 12.5px; color: var(--accent); cursor: pointer; user-select: none; }
   .def-toggle:hover { text-decoration: underline; }
@@ -161,6 +172,7 @@
   <div id="panel"><div class="inner">
     <div class="phead">
       <button class="close" onclick="closePanel()">×</button>
+      <div id="p-pager"></div>
       <div class="phrase" id="p-phrase"></div>
       <div class="anchor" id="p-anchor"></div>
       <div id="p-def"></div>
@@ -180,6 +192,8 @@
 const $ = s => document.querySelector(s);
 let constitution = null;
 let current = { phrase: null, anchor: null, sectionText: null, terms: [] };
+let researches = [];        // history of research entries (current is researches[researchIdx])
+let researchIdx = -1;
 
 /* ---------------- reader ---------------- */
 async function loadReader() {
@@ -245,7 +259,8 @@ function snapToWords(t) { return t.replace(/^[^\w"']+|[^\w"'.]+$/g, ''); }
 
 pop.addEventListener('mousedown', e => {  // mousedown beats selectionchange clearing
   e.preventDefault();
-  startResearch(pop.dataset.phrase, `Art. ${pop.dataset.art}, § ${pop.dataset.sec}`, pop.dataset.sectionText);
+  startResearch(pop.dataset.phrase, `Art. ${pop.dataset.art}, § ${pop.dataset.sec}`, pop.dataset.sectionText,
+                pop.dataset.art, pop.dataset.sec);
   pop.style.display = 'none';
   window.getSelection().removeAllRanges();
 });
@@ -261,6 +276,7 @@ function togglePanel() {
   setPanel(opening);
 }
 function renderPanelEmpty() {
+  $('#p-pager').innerHTML = '';
   $('#p-phrase').textContent = 'Nothing selected yet';
   $('#p-anchor').textContent = '';
   $('#p-def').innerHTML = '';
@@ -273,22 +289,69 @@ function renderPanelEmpty() {
   </div>`;
 }
 
-/* ---------------- research panel ---------------- */
-async function startResearch(phrase, anchor, sectionText) {
-  current = { phrase, anchor, sectionText, terms: [{ t: phrase, on: true, verbatim: true }] };
+/* ---------------- research panel + history ---------------- */
+async function startResearch(phrase, anchor, sectionText, art, sec) {
+  current = { phrase, anchor, sectionText, art, sec, def: null, expanded: false,
+              terms: [{ t: phrase, on: true, verbatim: true }] };
+  researches.push(current);
+  researchIdx = researches.length - 1;
+  renderResearchView();
+  fetchExpansion();          // async: era terms stream in (once per entry)
+}
+
+function showResearch(i) {
+  if (i < 0 || i >= researches.length || i === researchIdx) return;
+  researchIdx = i;
+  current = researches[i];
+  renderResearchView();
+  if (!current.expanded) fetchExpansion();
+  jumpToSelection(current);  // scroll reader back to the original highlight
+}
+
+function renderResearchView() {
   setPanel(true);
-  $('#p-phrase').textContent = `“${phrase}”`;
-  $('#p-anchor').textContent = anchor;
+  renderPager();
+  $('#p-phrase').textContent = `“${current.phrase}”`;
+  $('#p-anchor').textContent = current.anchor;
   renderDefToggle();
   renderPanelScaffold();
-  runSearch();               // instant: verbatim only
+  runSearch();               // instant: verbatim (or restored term set)
   fetchPrior();              // instant: lineage in the six pre-1876 constitutions
-  fetchExpansion();          // async: era terms stream in
+}
+
+function renderPager() {
+  const p = $('#p-pager');
+  if (researches.length < 2) { p.innerHTML = ''; return; }
+  const nums = researches.map((r, i) =>
+    `<span class="page-n${i === researchIdx ? ' cur' : ''}" onclick="showResearch(${i})" title="${esc(r.phrase)}">${i + 1}</span>`
+  ).join('');
+  p.innerHTML = `
+    <span class="page-arrow${researchIdx === 0 ? ' off' : ''}" onclick="showResearch(researchIdx - 1)">←</span>
+    ${nums}
+    <span class="page-arrow${researchIdx === researches.length - 1 ? ' off' : ''}" onclick="showResearch(researchIdx + 1)">→</span>`;
+}
+
+/* scroll the reader to the entry's section and re-highlight the selected phrase */
+function jumpToSelection(entry) {
+  document.querySelectorAll('#reader mark.sel').forEach(m => {
+    const p = m.closest('p');
+    if (p) p.innerHTML = esc(p.dataset.raw ?? p.textContent);
+  });
+  const secEl = document.querySelector(`#reader .section[data-art="${entry.art}"][data-sec="${entry.sec}"]`);
+  if (!secEl) return;
+  const p = secEl.querySelector('p');
+  const raw = p.dataset.raw ?? (p.dataset.raw = p.textContent);
+  const i = raw.toLowerCase().indexOf(entry.phrase.toLowerCase());
+  if (i >= 0) {
+    p.innerHTML = esc(raw.slice(0, i)) + '<mark class="sel">' +
+                  esc(raw.slice(i, i + entry.phrase.length)) + '</mark>' + esc(raw.slice(i + entry.phrase.length));
+  }
+  secEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 /* ---------------- plain-language definition dropdown ---------------- */
 function renderDefToggle() {
-  current.def = null;        // {short, extended} once fetched
+  // current.def ({short, extended}) persists on the history entry once fetched
   $('#p-def').innerHTML = `<span class="def-toggle" onclick="toggleDef()">▸ What does this mean?</span><div id="def-body"></div>`;
 }
 async function toggleDef() {
@@ -338,7 +401,9 @@ function renderPanelScaffold() {
     ${isS17 ? '<div class="note">A pre-built deep memo exists for § 17 — <span class="back-link" onclick="loadDemoMemo()">view it instantly</span>.</div>' : ''}
     <div class="chips-label">Search terms <span class="note">(click to toggle)</span></div>
     <div class="chips" id="chips"></div>
-    <div id="expansion-status" class="loading">${spin('expanding era vocabulary')}</div>
+    <div id="expansion-status" class="loading">${current.expanded
+      ? `<span class="note" title="${esc(current.rationale || '')}">＋ era terms added (hover for why)</span>`
+      : spin('expanding era vocabulary')}</div>
     <div id="prior"></div>
     <div id="results"></div>`;
   $('#memo-btn').onclick = buildMemo;
@@ -358,18 +423,25 @@ function renderChips() {
 }
 
 async function fetchExpansion() {
+  const entry = current;               // bind to this history entry, not "whatever is current later"
+  if (entry.expanding) return;         // a fetch for this entry is already in flight
+  entry.expanding = true;
   try {
     const r = await fetch('/api/research/terms', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ phrase: current.phrase, section_context: current.sectionText || '' }),
+      body: JSON.stringify({ phrase: entry.phrase, section_context: entry.sectionText || '' }),
     });
     const data = await r.json();
-    const phrase = current.phrase;
-    if (phrase !== data.phrase) return;   // user moved on
-    for (const t of data.terms) current.terms.push({ t, on: true, verbatim: false });
+    for (const t of data.terms) entry.terms.push({ t, on: true, verbatim: false });
+    entry.expanded = true;
+    entry.rationale = data.rationale;
+    if (entry !== current) return;     // user paged away; terms are saved on the entry
     $('#expansion-status').innerHTML = `<span class="note" title="${esc(data.rationale)}">＋ era terms added (hover for why)</span>`;
     renderChips(); runSearch();
-  } catch { $('#expansion-status').innerHTML = '<span class="note">era expansion unavailable</span>'; }
+  } catch {
+    entry.expanded = true;             // don't refetch on every page-back
+    if (entry === current) $('#expansion-status').innerHTML = '<span class="note">era expansion unavailable</span>';
+  }
 }
 
 /* lineage of the verbatim selection across the six pre-1876 constitutions */
