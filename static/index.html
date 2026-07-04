@@ -88,6 +88,18 @@
   .hit .term-tag { font-family: ui-monospace, monospace; font-size: 10.5px; background: var(--card); border: 1px solid var(--rule); padding: 0 5px; border-radius: 3px; }
   .hit mark { background: #f3d9a4; }
   .loading { color: var(--muted); font-style: italic; font-size: 13.5px; }
+  /* ---------- loading spinner + animated dots ---------- */
+  .spinner {
+    display: inline-block; width: 13px; height: 13px; vertical-align: -2px; margin-right: 7px;
+    border: 2px solid var(--rule); border-top-color: var(--accent); border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .dots span { animation: dotpulse 1.2s infinite; display: inline-block; }
+  .dots span:nth-child(2) { animation-delay: .2s; }
+  .dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes dotpulse { 0%, 60%, 100% { opacity: .2; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
+  .memo-btn .spinner { border-color: rgba(255,255,255,.35); border-top-color: var(--card); }
   .note { font-size: 12px; color: var(--muted); font-style: italic; }
   .prior-hit { font-size: 13.5px; padding: 4px 0; }
   .prior-hit a { color: var(--accent); }
@@ -145,7 +157,7 @@
 <div class="hint">Highlight any words in the text below, then click <b>Research phrase</b>. Evidence from 1870s newspapers, the 1875 convention debates, and era dictionaries appears on the right.</div>
 
 <div class="layout">
-  <div id="reader"><p class="loading">Loading the constitution…</p></div>
+  <div id="reader"><p class="loading"><span class="spinner"></span>Loading the constitution<span class="dots"><span>.</span><span>.</span><span>.</span></span></p></div>
   <div id="panel"><div class="inner">
     <div class="phead">
       <button class="close" onclick="closePanel()">×</button>
@@ -187,6 +199,7 @@ async function loadReader() {
   }
 }
 function esc(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function spin(text){ return `<span class="spinner"></span>${esc(text)}<span class="dots"><span>.</span><span>.</span><span>.</span></span>`; }
 
 /* ---------------- find-in-text ---------------- */
 let findTimer = null;
@@ -288,7 +301,7 @@ async function toggleDef() {
   }
   tog.textContent = '▾ What does this mean?';
   if (!current.def) {
-    body.innerHTML = '<div class="def-box loading">asking for a plain-language explanation…</div>';
+    body.innerHTML = `<div class="def-box loading">${spin('asking for a plain-language explanation')}</div>`;
     const phrase = current.phrase;
     try {
       const r = await fetch('/api/research/define', {
@@ -325,7 +338,7 @@ function renderPanelScaffold() {
     ${isS17 ? '<div class="note">A pre-built deep memo exists for § 17 — <span class="back-link" onclick="loadDemoMemo()">view it instantly</span>.</div>' : ''}
     <div class="chips-label">Search terms <span class="note">(click to toggle)</span></div>
     <div class="chips" id="chips"></div>
-    <div id="expansion-status" class="loading">expanding era vocabulary…</div>
+    <div id="expansion-status" class="loading">${spin('expanding era vocabulary')}</div>
     <div id="prior"></div>
     <div id="results"></div>`;
   $('#memo-btn').onclick = buildMemo;
@@ -392,7 +405,7 @@ async function runSearch() {
   const active = current.terms.filter(t => t.on).map(t => t.t);
   const res = $('#results');
   if (!active.length) { res.innerHTML = '<p class="note">no active terms</p>'; return; }
-  res.innerHTML = '<p class="loading">searching corpus…</p>';
+  res.innerHTML = `<p class="loading">${spin('searching corpus')}</p>`;
   const r = await fetch('/api/search?terms=' + encodeURIComponent(active.join('|')));
   if (seq !== searchSeq) return;
   const grouped = await r.json();
@@ -424,7 +437,7 @@ function closePanel(){ setPanel(false); }
 /* ---------------- memo (upgrade path) ---------------- */
 async function buildMemo() {
   const btn = $('#memo-btn');
-  btn.disabled = true; btn.textContent = 'Building memo (1–2 min: extracting evidence, synthesizing)…';
+  btn.disabled = true; btn.innerHTML = spin('Building memo (1–2 min: extracting evidence, synthesizing)');
   const active = current.terms.filter(t => t.on).map(t => t.t);
   const question = `What was the original public meaning of "${current.phrase}" in ${current.anchor} of the Texas Constitution of 1876?`;
   try {
@@ -491,7 +504,7 @@ function excerptAround(text, term) {
 async function openEvidence(id, term) {
   const v = $('#viewer'); v.classList.add('open');
   $('#v-title').textContent = 'Loading…';
-  $('#v-body').innerHTML = '<p class="loading">fetching source…</p>';
+  $('#v-body').innerHTML = `<p class="loading">${spin('fetching source')}</p>`;
   const r = await fetch('/api/evidence/' + encodeURIComponent(id));
   if (!r.ok) { $('#v-body').innerHTML = '<p>⚠ could not resolve citation</p>'; return; }
   const rec = await r.json();
