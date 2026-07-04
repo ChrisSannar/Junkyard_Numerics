@@ -14,6 +14,7 @@ Run:  uv run uvicorn app.main:app --reload
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -70,6 +71,76 @@ def demo_memo():
     if not path.exists():
         raise HTTPException(404, "demo memo not built yet — run: uv run python -m app.pipeline")
     return json.loads(path.read_text())
+
+
+_prior = None
+
+
+def prior_constitutions():
+    global _prior
+    if _prior is None:
+        _prior = json.loads((DATA_DIR / "prior_constitutions.json").read_text())
+    return _prior
+
+
+# covers "SEC. 9.", "SECTION XVI." (1869), "Section 4", "ART. 12." (1827),
+# and the 1836 Declaration of Rights' ordinal clauses ("Seventh.")
+_SEC_MARK = re.compile(
+    r"\b(?:(?:SEC(?:TION)?|Section|ART)\.?\s+(\d+[a-z]?|[IVXL]+\b)|"
+    r"(First|Second|Third|Fourth|Fifth|Sixth|Seventh|Eighth|Ninth|Tenth|Eleventh|"
+    r"Twelfth|Thirteenth|Fourteenth|Fifteenth|Sixteenth|Seventeenth|Eighteenth|"
+    r"Nineteenth|Twentieth|Twenty-\w+)\.)")
+
+_ORDINALS = {
+    "first": "1", "second": "2", "third": "3", "fourth": "4", "fifth": "5",
+    "sixth": "6", "seventh": "7", "eighth": "8", "ninth": "9", "tenth": "10",
+    "eleventh": "11", "twelfth": "12", "thirteenth": "13", "fourteenth": "14",
+    "fifteenth": "15", "sixteenth": "16", "seventeenth": "17", "eighteenth": "18",
+    "nineteenth": "19", "twentieth": "20",
+}
+
+
+def _nearest_section(text: str, pos: int) -> str | None:
+    """Number of the last 'SEC. n.' (or 1836-style ordinal clause) before pos."""
+    last = None
+    for m in _SEC_MARK.finditer(text, 0, pos):
+        last = m
+    if last is None:
+        return None
+    if last.group(1):
+        return _roman_to_arabic(last.group(1))
+    word = last.group(2).lower()
+    return _ORDINALS.get(word, last.group(2))
+
+
+def _roman_to_arabic(s: str) -> str:
+    if not re.fullmatch(r"[IVXL]+", s):
+        return s
+    vals = {"I": 1, "V": 5, "X": 10, "L": 50}
+    total = 0
+    for a, b in zip(s, s[1:] + " "):
+        total += -vals[a] if b in vals and vals[a] < vals[b] else vals[a]
+    return str(total)
+
+
+@app.get("/api/prior")
+def prior(phrase: str):
+    """Which of the six pre-1876 Texas constitutions contain this exact phrase."""
+    needle = re.sub(r"\s+", " ", phrase).strip().lower()
+    if len(needle) < 4:
+        raise HTTPException(400, "phrase too short")
+    results = []
+    for ed in prior_constitutions()["editions"]:
+        locs = []
+        for page in ed["pages"]:
+            i = page["text"].lower().find(needle)
+            if i < 0:
+                continue
+            sec = _nearest_section(page["text"], i)
+            locs.append({"label": page["label"], "section": sec, "url": page["url"]})
+        results.append({"year": ed["year"], "name": ed["name"], "url": ed["url"],
+                        "found": bool(locs), "locations": locs})
+    return {"phrase": phrase, "editions": results}
 
 
 class TermsRequest(BaseModel):

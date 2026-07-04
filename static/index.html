@@ -89,6 +89,10 @@
   .hit mark { background: #f3d9a4; }
   .loading { color: var(--muted); font-style: italic; font-size: 13.5px; }
   .note { font-size: 12px; color: var(--muted); font-style: italic; }
+  .prior-hit { font-size: 13.5px; padding: 4px 0; }
+  .prior-hit a { color: var(--accent); }
+  .prior-year { font-family: ui-monospace, monospace; font-weight: bold; background: var(--card); border: 1px solid var(--rule); padding: 0 6px; border-radius: 3px; margin-right: 4px; }
+  .prior-none { padding: 4px 0; }
   /* ---------- source viewer (overlays panel) ---------- */
   #viewer {
     position: fixed; top: 0; right: 0; width: 46%; min-width: 430px; height: 100vh; background: var(--card);
@@ -222,6 +226,7 @@ async function startResearch(phrase, anchor, sectionText) {
   $('#p-anchor').textContent = anchor;
   renderPanelScaffold();
   runSearch();               // instant: verbatim only
+  fetchPrior();              // instant: lineage in the six pre-1876 constitutions
   fetchExpansion();          // async: era terms stream in
 }
 
@@ -233,6 +238,7 @@ function renderPanelScaffold() {
     <div class="chips-label">Search terms <span class="note">(click to toggle)</span></div>
     <div class="chips" id="chips"></div>
     <div id="expansion-status" class="loading">expanding era vocabulary…</div>
+    <div id="prior"></div>
     <div id="results"></div>`;
   $('#memo-btn').onclick = buildMemo;
   renderChips();
@@ -263,6 +269,33 @@ async function fetchExpansion() {
     $('#expansion-status').innerHTML = `<span class="note" title="${esc(data.rationale)}">＋ era terms added (hover for why)</span>`;
     renderChips(); runSearch();
   } catch { $('#expansion-status').innerHTML = '<span class="note">era expansion unavailable</span>'; }
+}
+
+/* lineage of the verbatim selection across the six pre-1876 constitutions */
+async function fetchPrior() {
+  const phrase = current.phrase;
+  const box = $('#prior'); if (!box) return;
+  try {
+    const r = await fetch('/api/prior?phrase=' + encodeURIComponent(phrase));
+    if (!r.ok) { box.innerHTML = ''; return; }
+    const data = await r.json();
+    if (phrase !== current.phrase) return;   // user moved on
+    const found = data.editions.filter(e => e.found);
+    let html = `<div class="group-h">Prior Texas Constitutions</div>`;
+    if (!found.length) {
+      html += `<div class="note prior-none">This exact phrase does not appear in the six constitutions preceding 1876 (1827, 1836, 1845, 1861, 1866, 1869).</div>`;
+    } else {
+      for (const e of found) {
+        const locs = e.locations.map(l =>
+          `<a href="${l.url}" target="_blank" rel="noopener">${esc(l.label)}${l.section ? ', § ' + esc(l.section) : ''}</a>`
+        ).join('; ');
+        html += `<div class="prior-hit"><span class="prior-year">${esc(e.year)}</span> ${esc(e.name)} — ${locs}</div>`;
+      }
+      const missing = data.editions.filter(e => !e.found).map(e => e.year);
+      if (missing.length) html += `<div class="note prior-none">Not in: ${missing.join(', ')}.</div>`;
+    }
+    box.innerHTML = html;
+  } catch { box.innerHTML = ''; }
 }
 
 let searchSeq = 0;
@@ -326,7 +359,7 @@ async function loadDemoMemo() {
 function renderMemo(m) {
   const kindOrder = { semantic: 0, tradition: 1, sentiment: 2 };
   const secs = [...m.sections].sort((a,b)=>kindOrder[a.kind]-kindOrder[b.kind]);
-  let html = `<span class="back-link" onclick="renderPanelScaffold(); runSearch();">← back to evidence feed</span>
+  let html = `<span class="back-link" onclick="renderPanelScaffold(); runSearch(); fetchPrior();">← back to evidence feed</span>
     <p style="font-style:italic; font-size:14px; margin:10px 0">Q: ${esc(m.question)}</p>
     <div class="claim"><b>Summary.</b> ${esc(m.summary)}</div>`;
   for (const sec of secs) {
