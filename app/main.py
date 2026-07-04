@@ -23,7 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.pipeline import build_memo, load_corpus
-from app.search import concordance, expand_terms
+from app.search import concordance, define_phrase, expand_terms
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = ROOT / "data"
@@ -153,6 +153,13 @@ def research_terms(req: TermsRequest):
     """LLM era-expansion of a selected phrase into extra search terms."""
     exp = expand_terms(req.phrase, req.section_context)
     return {"phrase": req.phrase, "terms": exp.terms, "rationale": exp.rationale}
+
+
+@app.post("/api/research/define")
+def research_define(req: TermsRequest):
+    """Plain-language definition of the selected phrase (short + extended)."""
+    d = define_phrase(req.phrase, req.section_context)
+    return {"phrase": req.phrase, "short": d.short, "extended": d.extended}
 
 
 @app.get("/api/search")

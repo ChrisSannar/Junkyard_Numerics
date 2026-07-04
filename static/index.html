@@ -93,6 +93,23 @@
   .prior-hit a { color: var(--accent); }
   .prior-year { font-family: ui-monospace, monospace; font-weight: bold; background: var(--card); border: 1px solid var(--rule); padding: 0 6px; border-radius: 3px; margin-right: 4px; }
   .prior-none { padding: 4px 0; }
+  #panel-toggle {
+    font-family: inherit; font-size: 13px; border: 1px solid var(--rule); background: var(--paper);
+    padding: 5px 12px; border-radius: 3px; cursor: pointer; color: var(--ink);
+  }
+  #panel-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .panel-empty { padding: 40px 24px; text-align: center; color: var(--muted); }
+  .panel-empty .big { font-size: 34px; margin-bottom: 12px; }
+  /* ---------- definition dropdown ---------- */
+  .def-toggle { font-size: 12.5px; color: var(--accent); cursor: pointer; user-select: none; }
+  .def-toggle:hover { text-decoration: underline; }
+  .def-box {
+    border-left: 3px solid var(--rule); background: var(--paper); font-size: 13.5px;
+    padding: 8px 12px; margin: 8px 0 4px; border-radius: 0 3px 3px 0;
+  }
+  .def-box .def-more { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; }
+  .def-box .def-ext { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--rule); }
+  .def-box .def-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); display: block; margin-bottom: 3px; }
   /* ---------- source viewer (overlays panel) ---------- */
   #viewer {
     position: fixed; top: 0; right: 0; width: 46%; min-width: 430px; height: 100vh; background: var(--card);
@@ -123,6 +140,7 @@
   <h1>Texas Constitution of 1876</h1>
   <div class="sub">select any phrase → research its original public meaning</div>
   <input id="findbox" type="search" placeholder="Find in text… (e.g. damaged)">
+  <button id="panel-toggle" title="Open/close the research panel" onclick="togglePanel()">Research panel ▸</button>
 </header>
 <div class="hint">Highlight any words in the text below, then click <b>Research phrase</b>. Evidence from 1870s newspapers, the 1875 convention debates, and era dictionaries appears on the right.</div>
 
@@ -133,6 +151,7 @@
       <button class="close" onclick="closePanel()">×</button>
       <div class="phrase" id="p-phrase"></div>
       <div class="anchor" id="p-anchor"></div>
+      <div id="p-def"></div>
     </div>
     <div class="pbody" id="p-body"></div>
   </div></div>
@@ -218,16 +237,85 @@ pop.addEventListener('mousedown', e => {  // mousedown beats selectionchange cle
   window.getSelection().removeAllRanges();
 });
 
+/* ---------------- panel open/close ---------------- */
+function setPanel(open) {
+  $('#panel').classList.toggle('open', open);
+  $('#panel-toggle').textContent = open ? 'Research panel ◂' : 'Research panel ▸';
+}
+function togglePanel() {
+  const opening = !$('#panel').classList.contains('open');
+  if (opening && !current.phrase) renderPanelEmpty();
+  setPanel(opening);
+}
+function renderPanelEmpty() {
+  $('#p-phrase').textContent = 'Nothing selected yet';
+  $('#p-anchor').textContent = '';
+  $('#p-def').innerHTML = '';
+  $('#p-body').innerHTML = `<div class="panel-empty">
+    <div class="big">✍</div>
+    <p><b>Select text to research it.</b></p>
+    <p class="note">Highlight any phrase in the constitution on the left, then click
+    <b>🔍 Research phrase</b>. Evidence from 1870s newspapers, the 1875 convention
+    debates, era dictionaries, and prior Texas constitutions will appear here.</p>
+  </div>`;
+}
+
 /* ---------------- research panel ---------------- */
 async function startResearch(phrase, anchor, sectionText) {
   current = { phrase, anchor, sectionText, terms: [{ t: phrase, on: true, verbatim: true }] };
-  $('#panel').classList.add('open');
+  setPanel(true);
   $('#p-phrase').textContent = `“${phrase}”`;
   $('#p-anchor').textContent = anchor;
+  renderDefToggle();
   renderPanelScaffold();
   runSearch();               // instant: verbatim only
   fetchPrior();              // instant: lineage in the six pre-1876 constitutions
   fetchExpansion();          // async: era terms stream in
+}
+
+/* ---------------- plain-language definition dropdown ---------------- */
+function renderDefToggle() {
+  current.def = null;        // {short, extended} once fetched
+  $('#p-def').innerHTML = `<span class="def-toggle" onclick="toggleDef()">▸ What does this mean?</span><div id="def-body"></div>`;
+}
+async function toggleDef() {
+  const body = $('#def-body');
+  const tog = $('#p-def .def-toggle');
+  if (body.innerHTML) {      // already open → collapse
+    body.innerHTML = '';
+    tog.textContent = '▸ What does this mean?';
+    return;
+  }
+  tog.textContent = '▾ What does this mean?';
+  if (!current.def) {
+    body.innerHTML = '<div class="def-box loading">asking for a plain-language explanation…</div>';
+    const phrase = current.phrase;
+    try {
+      const r = await fetch('/api/research/define', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ phrase, section_context: current.sectionText || '' }),
+      });
+      if (!r.ok) throw new Error();
+      const d = await r.json();
+      if (phrase !== current.phrase) return;   // user moved on
+      current.def = d;
+    } catch {
+      if (phrase !== current.phrase) return;
+      if (tog.textContent.startsWith('▾')) body.innerHTML = '<div class="def-box note">definition unavailable right now</div>';
+      return;
+    }
+  }
+  if (tog.textContent.startsWith('▾')) renderDef(false);   // still expanded
+}
+function renderDef(showExtended) {
+  const d = current.def; if (!d) return;
+  $('#def-body').innerHTML = `<div class="def-box">
+    <span class="def-short">${esc(d.short)}</span>
+    ${showExtended
+      ? `<div class="def-ext"><span class="def-tag">In its time</span>${esc(d.extended)}</div>`
+      : ` <span class="def-more" onclick="renderDef(true)">show more</span>`}
+    <div class="note" style="margin-top:6px">AI-generated explanation — background only, not sourced evidence.</div>
+  </div>`;
 }
 
 function renderPanelScaffold() {
@@ -331,7 +419,7 @@ function markTerm(snippet, term) {
   return e.slice(0,i) + '<mark>' + e.slice(i, i+term.length) + '</mark>' + e.slice(i+term.length);
 }
 
-function closePanel(){ $('#panel').classList.remove('open'); }
+function closePanel(){ setPanel(false); }
 
 /* ---------------- memo (upgrade path) ---------------- */
 async function buildMemo() {

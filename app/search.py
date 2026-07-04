@@ -50,6 +50,34 @@ def expand_terms(phrase: str, section_context: str) -> TermExpansion:
                             system=EXPAND_SYSTEM, prompt=prompt, max_tokens=1000)
 
 
+# ---------- plain-language definition ----------
+
+class Definition(BaseModel):
+    short: str                 # 1-2 plain sentences: what the phrase means
+    extended: str              # one concise paragraph: 1870s word meanings + intent
+
+
+DEFINE_SYSTEM = """You explain provisions of the Texas Constitution of 1876 to ordinary
+people (not lawyers). Given a phrase and the section it appears in, return two fields:
+
+- short: 1-2 plain sentences. "This is what this means" for the average person today.
+  No legal jargon, no hedging, no citations.
+- extended: ONE concise paragraph (4-6 sentences). Add what the key words meant in the
+  1870s where that differs from or sharpens today's reading, and the evident intent
+  behind the phrasing — why the framers wrote it this way. Informative but tight;
+  no filler, no "it is important to note".
+
+This is background explanation, not sourced evidence — do not invent quotations or
+cite documents."""
+
+
+def define_phrase(phrase: str, section_context: str) -> Definition:
+    prompt = (f"Phrase: \"{phrase}\"\n\n"
+              f"Section it appears in:\n{section_context[:2000]}")
+    return parse_structured(Definition, model=EXPAND_MODEL,
+                            system=DEFINE_SYSTEM, prompt=prompt, max_tokens=1200)
+
+
 # ---------- concordance search ----------
 
 class Hit(BaseModel):
