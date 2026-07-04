@@ -1,0 +1,113 @@
+{
+ "provision": "Tex. Const. art. I, § 17 (1876)",
+ "question": "Did \"damaged\" in Art. I, § 17 encompass consequential injury to property (impaired access, flooding) without physical appropriation?",
+ "summary": "This memo assesses whether \"damaged\" in Tex. Const. art. I, § 17 (1876) reached consequential injury to property (impaired access, flooding) without physical appropriation. The extracted evidence, particularly contemporaneous dictionary definitions and ordinary newspaper usage, provides substantial support that \"damaged\" encompassed consequential injury, though some semantic evidence uses the word only for direct physical harm and the tradition record on the term's substantive scope is thin.",
+ "sections": [
+  {
+   "kind": "semantic",
+   "heading": "Semantic Meaning (contemporaneous usage)",
+   "claims": [
+    {
+     "text": "The contemporaneous Webster definition treats 'damage' broadly as 'Injury or harm to ... property ... an inflicted loss of value; detriment; hurt; mischief,' which on its face does not require physical appropriation or taking.",
+     "evidence_ids": [
+      "dict:webster:damage:l239147"
+     ],
+     "stance": "supporting"
+    },
+    {
+     "text": "Critically, the same dictionary entry expressly recognizes 'Consequential damage' as an established category, indicating that consequential injury fell within the ordinary meaning of the word.",
+     "evidence_ids": [
+      "dict:webster:damage:l239147"
+     ],
+     "stance": "supporting"
+    },
+    {
+     "text": "The verb definition — 'To occasion damage to the soundness, goodness, or value of; to hurt; to injure; to impair' — emphasizes impairment of value, consistent with non-appropriative harms such as impaired access or flooding.",
+     "evidence_ids": [
+      "dict:webster:damage:l239147"
+     ],
+     "stance": "supporting"
+    },
+    {
+     "text": "Ordinary newspaper usage from the era repeatedly applied 'damage to property' to flooding without any physical appropriation, including flooding of lowlands after dyke breaches, flooding from a burst reservoir, and flooding of houses, crops, fencing, and railroad tracks.",
+     "evidence_ids": [
+      "chronam:resource:sn83025733:1874-02-13:ed-1::sp=1",
+      "chronam:resource:sn83025733:1876-08-12:ed-1::sp=1",
+      "chronam:resource:sn83025733:1876-07-15:ed-1::sp=1"
+     ],
+     "stance": "supporting"
+    },
+    {
+     "text": "A convention delegate used 'damage' to describe the consequential expense of erecting fences after a road cut through a plantation — a harm distinct from appropriation of the land itself.",
+     "evidence_ids": [
+      "debates:1875_10_13_dbt:p6"
+     ],
+     "stance": "supporting"
+    },
+    {
+     "text": "Opposing counsel will point to storm-report usage in which 'damaged' and 'damage' denote direct physical harm to structures — uprooted trees, demolished steeples, damaged school buildings and churches, quantified as monetary loss — arguing the ordinary sense centered on direct physical injury rather than consequential injury absent appropriation.",
+     "evidence_ids": [
+      "chronam:resource:sn84022109:1878-10-24:ed-1::sp=1"
+     ],
+     "stance": "adverse"
+    },
+    {
+     "text": "The dictionary's 'nominal damages' subcategory shows the breadth of legal 'damages' usage but does not itself resolve whether consequential physical injury without appropriation was covered.",
+     "evidence_ids": [
+      "dict:webster:damage:l239147"
+     ],
+     "stance": "neutral"
+    }
+   ]
+  },
+  {
+   "kind": "tradition",
+   "heading": "History & Tradition (era law and practice)",
+   "claims": [
+    {
+     "text": "The convention record documents the amendment fixing the operative words 'taken, damaged or destroyed,' but the floor discussion concerned grammar and word placement rather than the substantive scope of 'damaged,' so it offers no direct evidence on the consequential-injury question.",
+     "evidence_ids": [
+      "debates:1875_10_13_dbt:p5"
+     ],
+     "stance": "neutral"
+    },
+    {
+     "text": "Related debate over tolls and public-use charges frames such charges as a tax but does not address consequential property damage under the compensation clause.",
+     "evidence_ids": [
+      "debates:1875_11_23_dbt:p9"
+     ],
+     "stance": "neutral"
+    },
+    {
+     "text": "Discussion of highway and access principles (opening a way across one's land, running a stream, bridging) reflects contemporary property-and-way doctrine but concerns dedication of public ways rather than the meaning of 'damaged.'",
+     "evidence_ids": [
+      "debates:1875_11_23_dbt:p9"
+     ],
+     "stance": "neutral"
+    }
+   ]
+  },
+  {
+   "kind": "sentiment",
+   "heading": "Sentiment Context (contemporary attitudes)",
+   "claims": [
+    {
+     "text": "Delegate sentiment reflected a live concern about compensating landowners for consequential burdens — such as the expense of fencing forced by a road cutting through a plantation — suggesting that consequential damage was among the delegates' animating concerns.",
+     "evidence_ids": [
+      "debates:1875_10_13_dbt:p6",
+      "debates:1875_10_14_dbt:p2"
+     ],
+     "stance": "supporting"
+    },
+    {
+     "text": "Opposing counsel will point to Stockdale's framing of the compensation issue in terms of physical taking and destruction of homes to open streets ('as was done in New York City'), which emphasizes appropriation rather than consequential injury.",
+     "evidence_ids": [
+      "debates:1875_10_14_dbt:p2"
+     ],
+     "stance": "neutral"
+    }
+   ]
+  }
+ ],
+ "methodology": "Corpus: 623 primary-source records (Chronicling America TX newspapers 1874-1878; McKay Debates of the 1875 Convention; Bouvier's and Webster's era dictionaries). Query terms: damaged, damage to property, consequential damages, compensation, public use, right of way. 40 records matched and were reviewed ({'newspaper': 9, 'debate': 29, 'dictionary': 2}); 28 quotes extracted. Limitations: archive OCR of 1870s newsprint is imperfect — searches report what was FOUND, not all that existed; misrecognized words reduce recall. Every quote links to its source for visual verification."
+}

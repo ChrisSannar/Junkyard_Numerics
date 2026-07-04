@@ -1,0 +1,13 @@
+# Search terms for Art. I, § 17 ("taken, damaged or destroyed for public use")
+# Semantic-meaning terms (what did "damaged" mean?)
+"damaged for public use"
+"property damaged"
+"damage to property"
+"consequential damages"
+# Tradition/practice terms (era takings practice)
+"right of way" railroad damages
+"internal improvements" compensation
+condemnation railroad compensation
+# Sentiment/context terms (convention + ratification debate)
+"new constitution" damaged property
+constitutional convention compensation property
